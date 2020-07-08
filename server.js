@@ -2,9 +2,11 @@
 const express = require('express');
 const cors = require('cors');
 const superagent = require('superagent');
+const pg = require('pg')
 const { request, response } = require('express');
 require('dotenv').config();
 const PORT = process.env.PORT || 5500;
+const client = new pg .Client(process.env.DATABASE_URL)
 const server = express();
 server.use(cors());
 // server.get('/location', (request, response) =>{
@@ -24,8 +26,18 @@ server.get('/weather', handlerOfWeather);
 server.get('/trails', handlerOfTrails);
 function handlerOfLocation(request, response){
     const city = request.query.city;
-    locationInfo(city).then(location =>{
-        response.status(200).json(location);
+    let SQLDB = `SELECT * FROM city WHERE city_name = '${city}';`;
+    client.query(SQLDB).then(outpot =>{
+        if(outpot.rows.length){
+            response.status(200).json(outpot.rows[0]);
+        }else{
+            locationInfo(city).then(location =>{
+                let SQLDB = `INSERT INTO city (city_name, city_location, lat, lon) VALUES ($1, $2, $3, $4);`;
+                let assignValues = [location.search_query, location.formatted_query, parseInt(location.latitude, parseInt(location.longitude))];
+                client.query(SQLDB, assignValues)
+                response.status(200).json(location);
+            })
+        }
     })
 }
 function locationInfo(city){
@@ -62,15 +74,16 @@ function Location(city, location){
 //     return newWeather;
 // }
 function handlerOfWeather(request, response){
-    const city = request.query.city;
-    weatherInfo(city).then(weather =>{
+    const lat = request.query.latitude;
+    const lon = request.query.longitude;
+    weatherInfo(lat, lon).then(weather =>{
         response.status(200).json(weather);
     });  
 }
-function weatherInfo(city){
+function weatherInfo(lat, lon){
     let newWeather = [];
     let key = process.env.WEATHERBIT_KEY;
-    let url = `https://api.weatherbit.io/v2.0/forecast/daily?city=${city}&key=${key}`;
+    let url = `https://api.weatherbit.io/v2.0/forecast/daily?lat=${lat}&lon=${lon}&key=${key}`;
     return superagent.get(url).then(weather =>{
         let status = weather.body.data;
         return status;
