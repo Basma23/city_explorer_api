@@ -62,15 +62,16 @@ function Location(city, location){
 //     return newWeather;
 // }
 function handlerOfWeather(request, response){
-    const city = request.query.city;
-    weatherInfo(city).then(weather =>{
+    const lat = request.query.latitude;
+    const lon = request.query.longitude;
+    weatherInfo(lat, lon).then(weather =>{
         response.status(200).json(weather);
     });  
 }
-function weatherInfo(city){
+function weatherInfo(lat, lon){
     let newWeather = [];
     let key = process.env.WEATHERBIT_KEY;
-    let url = `https://api.weatherbit.io/v2.0/forecast/daily?city=${city}&key=${key}`;
+    let url = `https://api.weatherbit.io/v2.0/forecast/daily?lat=${lat}&lon=${lon}&key=${key}`;
     return superagent.get(url).then(weather =>{
         let status = weather.body.data;
         return status;
