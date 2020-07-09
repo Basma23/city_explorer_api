@@ -26,27 +26,27 @@ server.get('/weather', handlerOfWeather);
 server.get('/trails', handlerOfTrails);
 function handlerOfLocation(request, response){
     const city = request.query.city;
-    let SQLDB = `SELECT * FROM city WHERE city_name = '${city}';`;
-    client.query(SQLDB).then(outpot =>{
-        if(outpot.rows.length){
-            response.status(200).json(outpot.rows[0]);
-        }else{
-            locationInfo(city).then(location =>{
-                let SQLDB = `INSERT INTO city (city_name, city_location, lat, lon) VALUES ($1, $2, $3, $4);`;
-                let assignValues = [location.search_query, location.formatted_query, parseInt(location.latitude, parseInt(location.longitude))];
-                client.query(SQLDB, assignValues)
-                response.status(200).json(location);
-            })
-        }
+    locationInfo(city).then(location =>{
+        response.status(200).json(location);
     })
 }
 function locationInfo(city){
-    let key = process.env.LOCATIONIQ_KEY;
-    let url = `https://eu1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json`;
-    return superagent.get(url).then(location =>{
-        const newLocation = new Location(city, location.body);
-        return newLocation;
-    });   
+    let SQLDB = `SELECT * FROM location WHERE search_query = $1`;
+    let assignValues = [city];
+    return client.query(SQLDB, assignValues).then(outpot =>{
+        if(outpot.rowCount){
+            return outpot.rows;
+        }else{
+            let key = process.env.LOCATIONIQ_KEY;
+            let url = `https://eu1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json`;
+            return superagent.get(url).then(location =>{
+                const newLocation = new Location(city, location.body);
+                return newLocation;
+            });   
+        }
+    })
+
+    
 }
 function Location(city, location){
     this.search_query = city;
@@ -139,6 +139,8 @@ server.use((error, req, res) => {
     res.status(500).send(error);
 });
 
-server.listen(PORT, () => {
-    console.log(`listening on port ${PORT}`)
-});
+client.connect().then(() =>{
+    server.listen(PORT, () => {
+        console.log(`listening on port ${PORT}`)
+    });
+})
