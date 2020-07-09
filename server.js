@@ -24,6 +24,8 @@ server.use(cors());
 server.get('/location', handlerOfLocation);
 server.get('/weather', handlerOfWeather);
 server.get('/trails', handlerOfTrails);
+server.get('/movies', handlerOfTrails);
+// server.get('/trails', handlerOfTrails);
 function handlerOfLocation(request, response){
     const city = request.query.city;
     locationInfo(city).then(location =>{
@@ -41,7 +43,11 @@ function locationInfo(city){
             let url = `https://eu1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json`;
             return superagent.get(url).then(location =>{
                 const newLocation = new Location(city, location.body);
-                return newLocation;
+                let SQLDB = `INSERT INTO location (search_query, formatted_query, latitude, longitude) VALUES ($1, $2, $3, $4);`;
+                let assignValues = [city, newLocation.formatted_query, newLocation.latitude, newLocation.longitude];
+                return client.query(SQLDB, assignValues).then(outpot =>{
+                    return newLocation;
+                })
             });   
         }
     })
