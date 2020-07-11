@@ -24,8 +24,8 @@ server.use(cors());
 server.get('/location', handlerOfLocation);
 server.get('/weather', handlerOfWeather);
 server.get('/trails', handlerOfTrails);
-server.get('/movies', handlerOfMovies);
-server.get('/yelp', handlerOfYelp);
+server.get('/movies', handlerOfTrails);
+server.get('/trails', handlerOfTrails);
 function handlerOfLocation(request, response){
     const city = request.query.city;
     locationInfo(city).then(location =>{
@@ -45,7 +45,7 @@ function locationInfo(city){
                 const newLocation = new Location(city, location.body);
                 let SQLDB = `INSERT INTO location (search_query, formatted_query, latitude, longitude) VALUES ($1, $2, $3, $4);`;
                 let assignValues = [city, newLocation.formatted_query, newLocation.latitude, newLocation.longitude];
-                return client.query(SQLDB, assignValues).then(() =>{
+                return client.query(SQLDB, assignValues).then(outpot =>{
                     return newLocation;
                 })
             });   
