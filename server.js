@@ -25,7 +25,7 @@ server.get('/location', handlerOfLocation);
 server.get('/weather', handlerOfWeather);
 server.get('/trails', handlerOfTrails);
 server.get('/movies', handlerOfTrails);
-// server.get('/trails', handlerOfTrails);
+server.get('/trails', handlerOfTrails);
 function handlerOfLocation(request, response){
     const city = request.query.city;
     locationInfo(city).then(location =>{
@@ -37,7 +37,7 @@ function locationInfo(city){
     let assignValues = [city];
     return client.query(SQLDB, assignValues).then(outpot =>{
         if(outpot.rowCount){
-            return outpot.rows;
+            return outpot.rows[0];
         }else{
             let key = process.env.LOCATIONIQ_KEY;
             let url = `https://eu1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json`;
@@ -50,9 +50,7 @@ function locationInfo(city){
                 })
             });   
         }
-    })
-
-    
+    })    
 }
 function Location(city, location){
     this.search_query = city;
@@ -137,6 +135,61 @@ function Trails(trails){
     this.condition_date = trail.conditionDate.split(" ")[0];
     this.condition_time = trail.conditionDate.split(" ")[1];
 }
+function handlerOfMovies(request, response){
+    const lat = request.query.latitude;
+    const lon = request.query.longitude;
+    movieInfo(lat, lon).then(movie =>{
+        response.status(200).json(movie);
+    });  
+}
+function movieInfo(lat, lon){
+    let newMovie = [];
+    let key = process.env.MOVIES_KEY;
+    let url = `https://api.themoviedb.org/3/movie/550?key=${key}&lat=${lat}&lon=${lon}`;
+    return superagent.get(url).then(movie =>{
+        let dataOfMovie = movie.body.result;
+        return dataOfMovie;
+    }).then(movie =>{
+        newMovie = movie.map(element =>{
+            return new Movies(element);
+        })
+        return newMovie;
+    })
+}
+function Movies(movies){
+    this.title = movies.title;
+    this.overview = movies.overview;
+    this.average_votes = movies.average_votes;
+    this.total_votes = movies.total_votes;
+    this.image_url = `https://image.tmdb.org/t/p/w500/${movies.poster_path}`;
+    this.popularity = movies.popularity;
+    this.released_on = movies.released_on;
+}
+function handlerOfYelp(request, response) {
+    let city = request.query.search_query;
+    getYelpData(city)
+      .then(data => {
+        response.status(200).send(data);
+    });
+}
+function getYelpData(city) {
+    const url = `https://api.yelp.com/v3/businesses/search?location=${city}`;
+    return superagent.get(url)
+        .set('Authorization', `Bearer ${process.env.YELP_KEY}`)
+        .then(data => {
+            const yelp = data.body.businesses.map(element => {
+                return new Yelp(element)
+            });
+            return yelp;
+        });
+}
+function Yelp(details) {
+    this.url = details.url;
+    this.name = details.name;
+    this.price = details.price;
+    this.rating = details.rating;
+    this.image_url = details.image_url;
+};
 server.get('*', (req, res) => {
     res.status(404).send('Not Found');
 });
