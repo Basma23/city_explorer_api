@@ -190,7 +190,7 @@ function Yelp(details) {
     this.rating = details.rating;
     this.image_url = details.image_url;
 };
-server.get('/test',(request, response) => {
+server.get('/',(request, response) => {
     response.send('you are doing great!!');
 });
 server.get('*', (req, res) => {
